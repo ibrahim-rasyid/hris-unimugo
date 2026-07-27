@@ -12,6 +12,7 @@
 | ADM-02 | Setup permission | Mengatur hak akses tiap role terhadap modul |
 | ADM-03 | Kelola akun | Aktivasi/nonaktivasi akun pengguna, reset password |
 | ADM-04 | Audit log | Melihat log aktivitas penting di sistem |
+| ADM-05 | Setup master jabatan struktural | Membuat, mengubah, menghapus jabatan struktural yang tersedia |
 
 ## Staff SDM
 | Kode | Fungsi | Deskripsi |
