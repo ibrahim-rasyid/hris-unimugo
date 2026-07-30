@@ -24,6 +24,12 @@ urlpatterns = [
     path("api/auth/token/", TokenObtainPairView.as_view(), name="token_obtain_pair"),
     path("api/auth/token/refresh/", TokenRefreshView.as_view(), name="token_refresh"),
     path("api/", include("apps.pegawai.urls")),
+    path("api/", include("apps.riwayat_studi.urls")),
+    path("api/", include("apps.riwayat_kepangkatan.urls")),
+    path("api/", include("apps.riwayat_jabatan_akademik.urls")),
+    path("api/", include("apps.organisasi.urls")),
+    path("api/", include("apps.riwayat_jabatan_struktural.urls")),
+    path("api/", include("apps.data_pendukung.urls")),
 ]
 
 if settings.DEBUG:
