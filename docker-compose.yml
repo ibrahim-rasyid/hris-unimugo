@@ -1,0 +1,75 @@
+# Development/staging stack: PostgreSQL + Django (Gunicorn) + Nginx.
+# Not a final production setup - see nginx/conf.d/default.conf for how
+# to extend this with Certbot/Let's Encrypt for HTTPS later.
+#
+# Usage:
+#   cp .env.example .env   # then fill in real values
+#   docker compose up --build
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - hris_network
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      # Backend talks to the `db` service, not localhost - overrides
+      # whatever DB_HOST/DB_PORT is set to in .env.
+      DB_HOST: db
+      DB_PORT: 5432
+      DJANGO_SETTINGS_MODULE: config.settings.prod
+    volumes:
+      - static_data:/app/staticfiles
+      - media_data:/app/media
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - hris_network
+
+  nginx:
+    image: nginx:1.27-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      # - "443:443"  # uncomment once HTTPS/Certbot is set up
+    volumes:
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - static_data:/app/staticfiles:ro
+      - media_data:/app/media:ro
+      # - certbot_www:/var/www/certbot:ro   # uncomment for Certbot ACME challenges
+      # - certbot_conf:/etc/letsencrypt:ro  # uncomment for TLS certs
+    depends_on:
+      - backend
+    networks:
+      - hris_network
+
+volumes:
+  postgres_data:
+  static_data:
+  media_data:
+  # certbot_www:
+  # certbot_conf:
+
+networks:
+  hris_network:
+    driver: bridge

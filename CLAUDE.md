@@ -110,6 +110,53 @@ apps/<nama_app>/
   2. Role yang tidak berhak -> ditolak (403)
   3. Pegawai mencoba akses/ubah data pegawai lain -> ditolak (403/404)
 
+## Docker (Development/Staging)
+Backend sudah bisa dijalankan lewat Docker Compose sebagai lingkungan
+development/staging yang konsisten (bukan setup produksi final - lihat
+catatan HTTPS di bawah).
+
+### File terkait
+- `docker-compose.yml` (root) -> 3 service: `db` (PostgreSQL 16, dengan
+  healthcheck), `backend` (Django + Gunicorn, depends_on db healthy),
+  `nginx` (reverse proxy + serve `/static/` & `/media/`, port 80).
+- `backend/Dockerfile` -> image `python:3.13-slim`, install dependency dari
+  `backend/requirements/prod.txt` (sudah berisi `gunicorn`, `whitenoise`;
+  `psycopg2-binary` ada di `requirements/base.txt`).
+- `backend/entrypoint.sh` -> tunggu PostgreSQL siap (`pg_isready`), lalu
+  jalankan `migrate`, `seed_initial_data`, dan `collectstatic` otomatis
+  sebelum start Gunicorn.
+- `backend/apps/accounts/management/commands/seed_initial_data.py` ->
+  seed idempotent untuk seluruh 8 model (Role, User, JabatanStrukturalMaster,
+  Pegawai, RiwayatStudi, RiwayatKepangkatan, RiwayatJabatanAkademik,
+  RiwayatJabatanStruktural, DataPendukung). Akun Admin dibuat dari
+  `DJANGO_ADMIN_USERNAME/EMAIL/PASSWORD` (env, wajib diisi); akun Staff SDM
+  & Pegawai dummy pakai password contoh `password123` (JANGAN dipakai di
+  produksi). Jalankan dengan `--minimal` untuk hanya seed Role + Admin
+  tanpa data dummy lain (cocok untuk lingkungan mendekati produksi).
+- `backend/.dockerignore` -> exclude `venv/`, `__pycache__/`, `.env`, dll.
+- `nginx/conf.d/default.conf` -> reverse proxy ke `backend:8000`, serve
+  static/media langsung dari named volume, sudah ada catatan cara
+  menambahkan HTTPS via Certbot/Let's Encrypt nanti (belum diimplementasi).
+- `.env.example` (root) -> template environment variable untuk Compose
+  (SECRET_KEY, DEBUG, ALLOWED_HOSTS, DB_*, CORS_ALLOWED_ORIGINS, dst).
+  Beda dari `backend/.env.example` yang dipakai untuk dev non-Docker.
+
+### Cara menjalankan
+```bash
+cp .env.example .env   # isi dengan nilai asli, JANGAN commit .env
+docker compose up --build
+```
+API akan bisa diakses lewat Nginx di `http://localhost/` (contoh:
+`http://localhost/api/auth/token/`, `http://localhost/admin/`).
+
+### Catatan penting
+- Container backend selalu jalan dengan `DJANGO_SETTINGS_MODULE=config.settings.prod`,
+  yang sudah hardcode `DEBUG = False` terlepas dari isi env var.
+- `CORS_ALLOWED_ORIGINS` dan `SECRET_KEY` WAJIB diisi lewat `.env` - tidak
+  ada wildcard `*` dan tidak ada nilai hardcode di kode.
+- HTTPS belum diimplementasi penuh; struktur `docker-compose.yml` dan
+  `nginx/conf.d/default.conf` sudah disiapkan (volume & komentar) supaya
+  Certbot/Let's Encrypt bisa ditambahkan tanpa restrukturisasi besar.
 
 ## Konvensi Frontend
 ### Struktur Folder

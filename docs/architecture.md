@@ -31,6 +31,15 @@ React (SPA)  <---- REST API (JWT) ---->  Django REST Framework
 - Pemisahan endpoint read (list/detail) vs write (create/update) di level
   serializer untuk kontrol akses granular.
 
+## Setup Docker
+Backend sudah di-Dockerize sebagai lingkungan development/staging (lihat
+`docker-compose.yml`, `backend/Dockerfile`, `backend/entrypoint.sh`,
+`nginx/conf.d/default.conf`, dan `.env.example` di root). Jalankan dengan
+`cp .env.example .env` lalu `docker compose up --build`. Detail lengkap ada
+di CLAUDE.md bagian "Docker (Development/Staging)". Ini bukan konfigurasi
+produksi final - HTTPS via Certbot/Let's Encrypt belum diimplementasi,
+hanya distrukturkan agar mudah ditambahkan belakangan.
+
 ## Fase Pengembangan (MVP)
 1. Model data + Django Admin untuk CRUD dasar
 2. REST API + autentikasi JWT + RBAC
